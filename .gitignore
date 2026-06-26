@@ -26,3 +26,4 @@ npm-debug.log*
 .svelte-kit/
 build/
 .netlify/
+.vercel/
