@@ -219,15 +219,17 @@ body {
   display: flex; align-items: center; gap: 5px;
   transition: border-color 0.15s;
 }
+.btn-danger { color: #B91C1C; border-color: rgba(185,28,28,0.22); }
+.btn-danger:hover { border-color: #B91C1C; background: rgba(185,28,28,0.08); }
 .btn-outline:hover { border-color: var(--gris-border-hover); }
 .btn-primary {
   padding: 8px 16px; border-radius: var(--radius-md);
-  background: var(--rojo); color: #fff;
+  background: var(--azul); color: #fff;
   border: none; font-size: 13px; cursor: pointer; font-weight: 500;
   display: flex; align-items: center; gap: 5px;
   text-decoration: none;
 }
-.btn-primary:hover { background: var(--rojo-dark); }
+.btn-primary:hover { background: var(--azul-dark); }
 .btn-maps {
   padding: 8px 16px; border-radius: var(--radius-md);
   background: #1A73E8; color: #fff;
@@ -238,16 +240,31 @@ body {
 .btn-maps:hover { background: #1558B0; }
 
 /* FORM */
-.form-intro {
-  background: var(--rojo-light); border: 1px solid #F0959580;
+ .form-intro {
+  background: var(--azul-light); border: 1px solid rgba(59,130,246,0.2);
   border-radius: var(--radius-md); padding: 12px 16px;
-  margin-bottom: 16px; font-size: 13px; color: var(--rojo-dark);
+  margin-bottom: 16px; font-size: 13px; color: var(--azul-dark);
   display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
 }
 
 .form-section {
   background: #fff; border: 1px solid var(--gris-border);
   border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px;
+}
+
+.form-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px;
+  align-items: center;
+}
+
+.edit-banner {
+  background: #F8FAFC;
+  border: 1px solid rgba(37,99,235,0.2);
+  color: #1D4ED8;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-top: 8px;
+  font-size: 13px;
 }
 .form-section h3 {
   font-size: 14px; font-weight: 600;
@@ -275,11 +292,32 @@ body {
   transition: border-color 0.15s;
   font-family: inherit;
 }
-..form-group input:focus,
+.form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus { border-color: var(--azul); }
 .form-group textarea { height: 88px; resize: vertical; line-height: 1.5; }
 .form-group .hint { font-size: 11px; color: var(--text-hint); margin-top: 4px; }
+
+.image-preview {
+  margin-top: 8px;
+  border: 1px solid var(--gris-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-width: 240px;
+}
+.image-preview img {
+  width: 100%; display: block;
+  object-fit: cover;
+  max-height: 180px;
+}
+.card-image img {
+  width: 100%; display: block;
+  height: 180px;
+  object-fit: cover;
+}
+.card-image {
+  background: #f5f5f5;
+}
 
 .maps-hint {
   background: #E8F0FE; border: 1px solid #B8D0F880;

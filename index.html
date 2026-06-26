@@ -117,24 +117,14 @@
       <h3>📞 Contacto</h3>
 
       <div class="form-group">
-        <label>Nombre del contacto <span class="required">*</span></label>
+        <label>Nombre del responsable <span class="required">*</span></label>
         <input type="text" id="f-responsable" placeholder="Nombre completo de quien coordina el centro">
       </div>
 
       <div class="form-group">
-        <label>Cédula / Identificación <span class="required">*</span></label>
-        <input type="text" id="f-cedula" placeholder="Ej: V-12345678">
-      </div>
-
-      <div class="form-group">
-        <label>Correo electrónico <span class="required">*</span></label>
-        <input type="email" id="f-correo" placeholder="Ej: nombre@correo.com">
-      </div>
-
-      <div class="form-group">
-        <label>Número de teléfono / WhatsApp</label>
+        <label>Número de teléfono / WhatsApp <span class="required">*</span></label>
         <input type="tel" id="f-telefono" placeholder="Ej: 0412-555-0101">
-        <div class="hint">Incluye el código de área si lo deseas. Opcional.</div>
+        <div class="hint">Incluye el código de área. La gente lo usará para coordinar donaciones.</div>
       </div>
 
       <div class="form-group">
@@ -167,9 +157,9 @@
       <div class="form-group">
         <label>Nivel de urgencia <span class="required">*</span></label>
         <div class="urgencia-toggle">
-          <button type="button" class="urg-btn" id="urg-alta"  onclick="selUrgencia('alta')">🔴 Alta</button>
+          <button type="button" class="urg-btn" id="urg-alta" onclick="selUrgencia('alta')">🔴 Alta</button>
           <button type="button" class="urg-btn" id="urg-media" onclick="selUrgencia('media')">🟡 Media</button>
-          <button type="button" class="urg-btn" id="urg-baja"  onclick="selUrgencia('baja')">🟢 Normal</button>
+          <button type="button" class="urg-btn" id="urg-baja" onclick="selUrgencia('baja')">🟢 Normal</button>
         </div>
       </div>
 
@@ -180,11 +170,9 @@
       </div>
     </div>
 
-    <div id="edit-banner" class="edit-banner" style="display:none">Estás editando una publicación. Guarda los cambios o cancela para volver.</div>
-    <div class="form-actions">
-      <button id="submit-btn" class="submit-btn" onclick="publicarCentro()">📢 Publicar centro ahora</button>
-      <button id="cancel-btn" class="cancel-btn" onclick="cancelEdit()" style="display:none">Cancelar edición</button>
-    </div>
+    <button class="submit-btn" onclick="publicarCentro()">
+      📢 Publicar centro ahora
+    </button>
 
   </div>
 </div>
