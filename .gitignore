@@ -1,0 +1,23 @@
+# ─────────────────────────────────────────────
+# Secretos / entorno  (NUNCA subir)
+# ─────────────────────────────────────────────
+.env
+.env.local
+.env*.local
+
+# ─────────────────────────────────────────────
+# Sistema operativo / editor
+# ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# ─────────────────────────────────────────────
+# Restos de Node / Next.js (proyecto anterior)
+# ─────────────────────────────────────────────
+node_modules/
+.next/
+next-env.d.ts
+npm-debug.log*
