@@ -1,5 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { isGoogleMapsUrl, latLngFromMapsUrl } from '$lib/mapLinks';
+import { isGoogleMapsUrl } from '$lib/mapLinks';
+import { resolveGoogleMapsUrl } from '$lib/server/mapResolver';
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const rawUrl = url.searchParams.get('url') || '';
@@ -8,20 +9,8 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
     return json({ location: null, resolvedUrl: null }, { status: 400 });
   }
 
-  const directLocation = latLngFromMapsUrl(rawUrl);
-  if (directLocation) {
-    return json({ location: directLocation, resolvedUrl: rawUrl });
-  }
-
   try {
-    const response = await fetch(rawUrl, {
-      method: 'GET',
-      redirect: 'follow'
-    });
-    const resolvedUrl = response.url || rawUrl;
-    const location = latLngFromMapsUrl(resolvedUrl);
-
-    return json({ location, resolvedUrl });
+    return json(await resolveGoogleMapsUrl(rawUrl, fetch));
   } catch (error) {
     console.error('Map URL resolution failed', error);
     return json({ location: null, resolvedUrl: rawUrl }, { status: 502 });

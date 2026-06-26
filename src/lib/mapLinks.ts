@@ -2,6 +2,10 @@ export function mapsUrlFromLatLng(lat: number, lng: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)},${lng.toFixed(6)}`;
 }
 
+export function isValidLatLng(lat: number, lng: number): boolean {
+  return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
 export function latLngFromMapsUrl(url: string): { lat: number; lng: number } | null {
   const value = url.trim();
   if (!value) return null;
@@ -29,7 +33,7 @@ function findLatLng(values: string[], patterns: RegExp[]): { lat: number; lng: n
 
       const lat = Number(match[1]);
       const lng = Number(match[2]);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+      if (isValidLatLng(lat, lng)) return { lat, lng };
     }
   }
 
@@ -48,15 +52,22 @@ export function isGoogleMapsUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
 
-    return (
-      host === 'maps.app.goo.gl' ||
-      host === 'goo.gl' ||
-      host.endsWith('google.com') ||
-      host.endsWith('google.com.ve') ||
-      host.includes('maps.google')
-    );
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    if (host === 'maps.app.goo.gl') return true;
+    if (host === 'goo.gl') return pathname.startsWith('/maps');
+
+    if (isGoogleHost(host, 'google.com') || isGoogleHost(host, 'google.com.ve')) {
+      return host.startsWith('maps.') || pathname.startsWith('/maps');
+    }
+
+    return false;
   } catch {
     return false;
   }
+}
+
+function isGoogleHost(host: string, root: string): boolean {
+  return host === root || host.endsWith(`.${root}`);
 }

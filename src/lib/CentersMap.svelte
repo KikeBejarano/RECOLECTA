@@ -3,7 +3,7 @@
   import 'leaflet/dist/leaflet.css';
   import { latLngFromMapsUrl } from './mapLinks';
   import type { Center } from './centers';
-  import type { LatLngExpression, Map, Marker } from 'leaflet';
+  import type { LatLngExpression, Map as LeafletMap, Marker } from 'leaflet';
 
   export let centers: Center[] = [];
   export let onSelect: (center: Center) => void;
@@ -12,9 +12,11 @@
 
   let mapElement: HTMLDivElement;
   let leaflet: typeof import('leaflet') | null = null;
-  let map: Map | null = null;
+  let map: LeafletMap | null = null;
   let markers: Marker[] = [];
   let status = 'Preparando mapa...';
+  let renderRun = 0;
+  const locationCache = new Map<string, { lat: number; lng: number } | null>();
 
   $: if (map && leaflet && centers) {
     void renderMarkers();
@@ -50,11 +52,14 @@
   async function renderMarkers() {
     if (!map || !leaflet) return;
 
+    const currentRun = ++renderRun;
     clearMarkers();
-    const entries = await Promise.all(centers.map(async (center) => ({
+    const entries = await mapWithConcurrency(centers, 6, async (center) => ({
       center,
       location: await getCenterLocation(center)
-    })));
+    }));
+    if (currentRun !== renderRun) return;
+
     const located = entries.filter(
       (entry): entry is { center: Center; location: { lat: number; lng: number } } => Boolean(entry.location)
     );
@@ -104,19 +109,47 @@
     const directLocation = latLngFromMapsUrl(center.mapsUrl);
     if (directLocation) return directLocation;
 
+    if (locationCache.has(center.mapsUrl)) return locationCache.get(center.mapsUrl) || null;
+
     return resolveShortenedLocation(center.mapsUrl);
   }
 
   async function resolveShortenedLocation(mapsUrl: string): Promise<{ lat: number; lng: number } | null> {
     try {
       const response = await fetch(`/api/resolve-map-url?url=${encodeURIComponent(mapsUrl)}`);
-      if (!response.ok) return null;
+      if (!response.ok) {
+        locationCache.set(mapsUrl, null);
+        return null;
+      }
       const data = (await response.json()) as { location?: { lat: number; lng: number } | null };
-      return data.location || null;
+      const location = data.location || null;
+      locationCache.set(mapsUrl, location);
+      return location;
     } catch (error) {
       console.error('Center map URL resolution failed', error);
+      locationCache.set(mapsUrl, null);
       return null;
     }
+  }
+
+  async function mapWithConcurrency<T, R>(
+    values: T[],
+    limit: number,
+    mapper: (value: T) => Promise<R>
+  ): Promise<R[]> {
+    const results = new Array<R>(values.length);
+    let nextIndex = 0;
+
+    const workers = Array.from({ length: Math.min(limit, values.length) }, async () => {
+      while (nextIndex < values.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await mapper(values[index]);
+      }
+    });
+
+    await Promise.all(workers);
+    return results;
   }
 
   function popupHtml(center: Center): string {

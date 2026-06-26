@@ -1,3 +1,5 @@
+import { isGoogleMapsUrl } from './mapLinks';
+
 export type Urgency = 'alta' | 'media' | 'baja';
 export type Tab = 'ver' | 'publicar';
 
@@ -21,6 +23,7 @@ export type CenterRecord = {
   image_url: string | null;
   lat?: number | null;
   lng?: number | null;
+  can_edit?: boolean;
   image_data?: string | null;
   extra?: Record<string, unknown>;
 };
@@ -46,6 +49,7 @@ export type Center = {
   imageUrl: string | null;
   lat: number | null;
   lng: number | null;
+  canEdit: boolean;
 };
 
 export type CenterForm = {
@@ -147,34 +151,24 @@ export function normalizeMapsUrl(rawUrl: string): string | null {
   const value = rawUrl.trim();
   if (!value) return null;
 
-  try {
-    const url = new URL(value);
-    const host = url.host.toLowerCase();
-
-    if (host.includes('maps.app.goo.gl') || host.includes('goo.gl/maps')) return value;
-    if (host.endsWith('google.com') || host.endsWith('google.com.ve') || host.includes('maps.google')) {
-      return value;
-    }
-    if (host.includes('google') && url.pathname.startsWith('/maps')) return value;
-
-    return value;
-  } catch {
-    return null;
-  }
+  return isGoogleMapsUrl(value) ? value : null;
 }
 
 export function validateCenterForm(form: CenterForm): string[] {
   const errors: string[] = [];
 
-  if (!form.nombre.trim()) errors.push('el nombre del centro');
-  if (!form.estado) errors.push('el estado');
-  if (!form.direccion.trim()) errors.push('la direccion');
+  if (!form.nombre.trim() || form.nombre.trim().length > 100) errors.push('el nombre del centro');
+  if (!venezuelaStates.includes(form.estado)) errors.push('el estado');
+  if (!form.direccion.trim() || form.direccion.trim().length > 240) errors.push('la direccion');
   if (!normalizeMapsUrl(form.mapsUrl)) errors.push('el enlace de Google Maps');
-  if (!form.responsable.trim()) errors.push('el nombre del responsable');
-  if (!form.cedula.trim()) errors.push('la cedula o identificacion');
-  if (!form.correo.trim()) errors.push('el correo electronico');
-  if (!form.descripcion.trim()) errors.push('la descripcion');
-  if (!form.urgencia) errors.push('el nivel de urgencia');
+  if (!form.responsable.trim() || form.responsable.trim().length > 100) errors.push('el nombre del responsable');
+  if (!form.cedula.trim() || form.cedula.trim().length > 40) errors.push('la cedula o identificacion');
+  if (!isValidEmail(form.correo)) errors.push('el correo electronico');
+  if (form.telefono.trim().length > 40) errors.push('el telefono');
+  if (form.horario.trim().length > 120) errors.push('el horario');
+  if (!form.descripcion.trim() || form.descripcion.trim().length > 1000) errors.push('la descripcion');
+  if (!form.urgencia || !Object.keys(urgencyLabel).includes(form.urgencia)) errors.push('el nivel de urgencia');
+  if (form.tipos.length > donationTypes.length) errors.push('los tipos de donacion');
 
   return errors;
 }
@@ -202,7 +196,8 @@ export function fromRecord(record: CenterRecord): Center {
     creatorIp: record.creator_ip || null,
     imageUrl: record.image_url || record.image_data || null,
     lat: typeof record.lat === 'number' ? record.lat : null,
-    lng: typeof record.lng === 'number' ? record.lng : null
+    lng: typeof record.lng === 'number' ? record.lng : null,
+    canEdit: Boolean(record.can_edit)
   };
 }
 
@@ -227,10 +222,10 @@ export function toRecord(
     telefono: form.telefono.trim(),
     horario: form.horario.trim(),
     descripcion: form.descripcion.trim(),
-    tipos: form.tipos,
+    tipos: sanitizedDonationTypes(form.tipos),
     urgencia: (form.urgencia || 'baja') as Urgency,
     fecha_publicacion: publishedAt || new Date().toISOString(),
-    creator_id: creatorId,
+    creator_id: creatorId || null,
     creator_ip: creatorIp,
     image_url: imageUrl,
     lat: location?.lat ?? null,
@@ -262,7 +257,9 @@ export function getUserId(): string {
   let id = localStorage.getItem(key);
 
   if (!id) {
-    id = `u_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    id = globalThis.crypto?.randomUUID
+      ? `u_${globalThis.crypto.randomUUID()}`
+      : `u_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
     localStorage.setItem(key, id);
   }
 
@@ -270,6 +267,7 @@ export function getUserId(): string {
 }
 
 export function isOwned(center: Center, userId: string, userIp: string | null): boolean {
+  if (center.canEdit) return true;
   if (center.creatorId && center.creatorId === userId) return true;
   if (center.creatorIp && userIp && center.creatorIp === userIp) return true;
   return false;
@@ -293,4 +291,13 @@ export function shareText(center: Center): string {
     'Comparte para que más personas puedan ayudar 🇻🇪'
   ]
     .join('\n');
+}
+
+function sanitizedDonationTypes(values: string[]): string[] {
+  return [...new Set(values.filter((type) => donationTypes.includes(type)))];
+}
+
+function isValidEmail(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.length > 3 && trimmed.length <= 120 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 }

@@ -37,10 +37,6 @@
       status = locationFromUrl
         ? 'Ubicacion cargada desde el enlace existente.'
         : 'Toca "Usar mi ubicacion" para completar el enlace automaticamente.';
-
-      if (!locationFromUrl) {
-        void requestCurrentLocation({ silent: true });
-      }
     } catch (error) {
       console.error('Leaflet map error', error);
       status = 'No se pudo cargar el mapa. Puedes pegar el enlace de Google Maps manualmente.';
@@ -97,7 +93,7 @@
     if (emit) onSelect(mapsUrlFromLatLng(location.lat, location.lng));
   }
 
-  async function requestCurrentLocation(options: { silent?: boolean } = {}) {
+  async function requestCurrentLocation() {
     locating = true;
     status = 'Solicitando permiso de ubicacion...';
 
@@ -108,9 +104,7 @@
       status = 'Ubicacion actual cargada. Ajusta el marcador si hace falta.';
     } catch (error) {
       console.error('Geolocation error', error);
-      status = options.silent
-        ? 'Toca "Usar mi ubicacion" para permitir el acceso en tu telefono.'
-        : 'No se pudo obtener tu ubicacion. Revisa permisos del navegador o pega el enlace manualmente.';
+      status = 'No se pudo obtener tu ubicacion. Revisa permisos del navegador o pega el enlace manualmente.';
     } finally {
       locating = false;
     }

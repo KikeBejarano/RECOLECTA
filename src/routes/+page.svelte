@@ -38,7 +38,6 @@
   let selectedImage: File | null = null;
   let editCenterId: string | null = null;
   let userId = '';
-  let userIp: string | null = null;
   let form: CenterForm = { ...emptyForm, tipos: [] };
 
   $: filteredCenters = centers.filter((center) => {
@@ -65,22 +64,9 @@
 
   onMount(async () => {
     userId = getUserId();
-    userIp = localStorage.getItem('centros_acopio_ve_user_ip');
-
-    if (!userIp) {
-      fetch('https://api.ipify.org?format=json')
-        .then((response) => response.json())
-        .then((data) => {
-          if (data?.ip) {
-            userIp = data.ip;
-            localStorage.setItem('centros_acopio_ve_user_ip', data.ip);
-          }
-        })
-        .catch(() => undefined);
-    }
 
     try {
-      const response = await fetch('/api/centers');
+      const response = await fetch(`/api/centers?creatorId=${encodeURIComponent(userId)}`);
       if (!response.ok) throw new Error('No se pudieron cargar los centros');
       const data = (await response.json()) as { centers?: CenterRecord[] };
       const records = Array.isArray(data.centers) ? data.centers : [];
@@ -152,7 +138,7 @@
   }
 
   function editCenter(center: Center) {
-    if (!isOwned(center, userId, userIp)) return;
+    if (!isOwned(center, userId, null)) return;
     editCenterId = center.id;
     form = formFromCenter(center);
     imagePreview = center.imageUrl;
@@ -161,7 +147,7 @@
   }
 
   async function removeCenter(center: Center) {
-    if (!isOwned(center, userId, userIp)) return;
+    if (!isOwned(center, userId, null)) return;
     if (!confirm('Eliminar este centro de acopio?')) return;
 
     try {
@@ -398,7 +384,7 @@
     {:else}
       <section class="center-list" aria-label="Lista de centros">
         {#each filteredCenters as center}
-          {@const owned = isOwned(center, userId, userIp)}
+          {@const owned = isOwned(center, userId, null)}
           {@const waUrl = whatsappUrl(center)}
           <article id={`card-${center.id}`} class:expanded={expandedId === center.id} class="center-card">
             {#if center.imageUrl}

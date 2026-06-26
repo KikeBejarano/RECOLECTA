@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import 'leaflet/dist/leaflet.css';
   import { latLngFromMapsUrl } from './mapLinks';
   import type { Center } from './centers';
@@ -34,6 +34,7 @@
         status = 'No se pudieron extraer coordenadas de este enlace.';
         return;
       }
+      await tick();
     }
 
     status = '';
