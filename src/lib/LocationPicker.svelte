@@ -15,6 +15,7 @@
   let marker: Marker | null = null;
   let selected = latLngFromMapsUrl(mapsUrl) || fallbackLocation;
   let status = 'Ubicando tu posicion actual...';
+  let locating = false;
 
   onMount(() => {
     void initializeFromBrowser();
@@ -30,12 +31,16 @@
     try {
       leaflet = await import('leaflet');
       const locationFromUrl = latLngFromMapsUrl(mapsUrl);
-      const start = locationFromUrl || (await getCurrentLocation().catch(() => fallbackLocation));
+      const start = locationFromUrl || fallbackLocation;
       initializeMap(start);
-      selectLocation(start, !locationFromUrl);
+      selectLocation(start, false);
       status = locationFromUrl
         ? 'Ubicacion cargada desde el enlace existente.'
-        : 'Arrastra el marcador o toca el mapa para ajustar la ubicacion.';
+        : 'Toca "Usar mi ubicacion" para completar el enlace automaticamente.';
+
+      if (!locationFromUrl) {
+        void requestCurrentLocation({ silent: true });
+      }
     } catch (error) {
       console.error('Leaflet map error', error);
       status = 'No se pudo cargar el mapa. Puedes pegar el enlace de Google Maps manualmente.';
@@ -92,8 +97,32 @@
     if (emit) onSelect(mapsUrlFromLatLng(location.lat, location.lng));
   }
 
+  async function requestCurrentLocation(options: { silent?: boolean } = {}) {
+    locating = true;
+    status = 'Solicitando permiso de ubicacion...';
+
+    try {
+      const location = await getCurrentLocation();
+      selectLocation(location, true);
+      map?.setView([location.lat, location.lng], 16);
+      status = 'Ubicacion actual cargada. Ajusta el marcador si hace falta.';
+    } catch (error) {
+      console.error('Geolocation error', error);
+      status = options.silent
+        ? 'Toca "Usar mi ubicacion" para permitir el acceso en tu telefono.'
+        : 'No se pudo obtener tu ubicacion. Revisa permisos del navegador o pega el enlace manualmente.';
+    } finally {
+      locating = false;
+    }
+  }
+
   function getCurrentLocation(): Promise<{ lat: number; lng: number }> {
     return new Promise((resolve, reject) => {
+      if (!window.isSecureContext) {
+        reject(new Error('La geolocalizacion requiere HTTPS'));
+        return;
+      }
+
       if (!navigator.geolocation) {
         reject(new Error('Geolocalizacion no disponible'));
         return;
@@ -120,6 +149,9 @@
   <div bind:this={mapElement} class="map-canvas" aria-label="Selector de ubicacion del centro"></div>
   <div class="map-footer">
     <span>{status}</span>
+    <button class="location-button" type="button" disabled={locating} on:click={() => requestCurrentLocation()}>
+      {locating ? 'Ubicando...' : 'Usar mi ubicacion'}
+    </button>
     <span>{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</span>
   </div>
 </div>

@@ -749,12 +749,30 @@ dd {
 
 .map-footer {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
   padding: 10px 12px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.location-button {
+  min-height: 36px;
+  border: 1px solid var(--blue);
+  border-radius: var(--radius);
+  background: var(--blue);
+  color: #fff;
+  padding: 0 12px;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.location-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .checkbox-grid {
