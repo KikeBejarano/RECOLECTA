@@ -21,3 +21,8 @@ node_modules/
 .next/
 next-env.d.ts
 npm-debug.log*
+
+# SvelteKit / Netlify
+.svelte-kit/
+build/
+.netlify/
