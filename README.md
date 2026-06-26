@@ -22,6 +22,16 @@ SUPABASE_STORAGE_BUCKET="Imagenes"
 The app expects the existing Supabase `centros` table and the `Imagenes` storage bucket.
 The map picker uses Leaflet with OpenStreetMap tiles and does not require a Google Maps API key. Selected coordinates are still saved as Google Maps links.
 
+For efficient map rendering, add optional coordinate columns to `centros`:
+
+```sql
+alter table centros
+add column if not exists lat double precision,
+add column if not exists lng double precision;
+```
+
+New submissions resolve and save coordinates server-side when those columns exist. Older records remain compatible: the UI first uses saved `lat/lng`, then parses direct coordinate Google Maps URLs, then falls back to resolving shortened Google Maps links through the server endpoint.
+
 ## Vercel
 
 Vercel builds the SvelteKit app with:

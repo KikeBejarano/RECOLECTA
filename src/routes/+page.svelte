@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import CenterMap from '$lib/CenterMap.svelte';
+  import CentersMap from '$lib/CentersMap.svelte';
   import LocationPicker from '$lib/LocationPicker.svelte';
   import {
     badgeClass,
@@ -105,6 +106,12 @@
 
   function toggleCenter(id: string) {
     expandedId = expandedId === id ? null : id;
+  }
+
+  function selectCenterFromMap(center: Center) {
+    expandedId = center.id;
+    const element = document.getElementById(`card-${center.id}`);
+    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function setUrgency(urgency: Urgency) {
@@ -344,6 +351,10 @@
       </article>
     </section>
 
+    {#if !loading && filteredCenters.length > 0}
+      <CentersMap centers={filteredCenters} onSelect={selectCenterFromMap} />
+    {/if}
+
     <section class="directory-tools" aria-label="Busqueda y filtros">
       <label class="search-box">
         <span>Buscar</span>
@@ -389,7 +400,7 @@
         {#each filteredCenters as center}
           {@const owned = isOwned(center, userId, userIp)}
           {@const waUrl = whatsappUrl(center)}
-          <article class:expanded={expandedId === center.id} class="center-card">
+          <article id={`card-${center.id}`} class:expanded={expandedId === center.id} class="center-card">
             {#if center.imageUrl}
               <img class="center-image" src={center.imageUrl} alt={`Imagen del centro ${center.nombre}`} />
             {/if}
@@ -436,7 +447,7 @@
                   </div>
                 {/if}
 
-                <CenterMap mapsUrl={center.mapsUrl} title={center.nombre} />
+                <CenterMap mapsUrl={center.mapsUrl} title={center.nombre} center={center} />
 
                 <div class="detail-actions">
                   {#if center.mapsUrl}

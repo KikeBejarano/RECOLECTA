@@ -2,18 +2,20 @@
   import { onMount } from 'svelte';
   import 'leaflet/dist/leaflet.css';
   import { latLngFromMapsUrl } from './mapLinks';
+  import type { Center } from './centers';
   import type { LatLngExpression, Map, Marker } from 'leaflet';
 
   export let mapsUrl: string | null = null;
   export let title = 'Ubicacion del centro';
+  export let center: Center | null = null;
 
   let mapElement: HTMLDivElement;
   let leaflet: typeof import('leaflet') | null = null;
   let map: Map | null = null;
   let marker: Marker | null = null;
-  let location = mapsUrl ? latLngFromMapsUrl(mapsUrl) : null;
+  let location = getLocation();
   let resolvedUrl = mapsUrl;
-  let status = location ? '' : 'Resolviendo ubicacion...';
+  let status = location ? '' : 'Resolviendo enlace de ubicacion...';
 
   onMount(() => {
     void initializeMap();
@@ -27,12 +29,11 @@
 
   async function initializeMap() {
     if (!location) {
-      location = await resolveLocation();
-    }
-
-    if (!location) {
-      status = 'No se pudieron extraer coordenadas de este enlace.';
-      return;
+      location = await resolveShortenedLocation();
+      if (!location) {
+        status = 'No se pudieron extraer coordenadas de este enlace.';
+        return;
+      }
     }
 
     status = '';
@@ -68,18 +69,24 @@
       .addTo(map);
   }
 
-  async function resolveLocation(): Promise<{ lat: number; lng: number } | null> {
+  function getLocation(): { lat: number; lng: number } | null {
+    if (center && typeof center.lat === 'number' && typeof center.lng === 'number') {
+      return { lat: center.lat, lng: center.lng };
+    }
+
+    return mapsUrl ? latLngFromMapsUrl(mapsUrl) : null;
+  }
+
+  async function resolveShortenedLocation(): Promise<{ lat: number; lng: number } | null> {
     if (!mapsUrl) return null;
 
     try {
       const response = await fetch(`/api/resolve-map-url?url=${encodeURIComponent(mapsUrl)}`);
       if (!response.ok) return null;
-
       const data = (await response.json()) as {
         location?: { lat: number; lng: number } | null;
         resolvedUrl?: string | null;
       };
-
       resolvedUrl = data.resolvedUrl || mapsUrl;
       return data.location || null;
     } catch (error) {

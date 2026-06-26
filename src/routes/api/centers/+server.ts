@@ -1,6 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { requireSupabase, storageBucket } from '$lib/server/supabase';
 import { fromRecord, toRecord, validateCenterForm, type CenterForm, type CenterRecord } from '$lib/centers';
+import { isGoogleMapsUrl, latLngFromMapsUrl } from '$lib/mapLinks';
 
 export const GET: RequestHandler = async () => {
   const supabase = requireSupabase();
@@ -58,6 +59,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     if (file instanceof File && file.size > 0) {
       imageUrl = await uploadCenterImage(file);
     }
+    const location = await resolveLocationOnSubmit(form.mapsUrl);
 
     const record = toRecord(
       form,
@@ -65,18 +67,26 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       actorId,
       clientIp,
       imageUrl,
-      existing?.fecha_publicacion || undefined
+      existing?.fecha_publicacion || undefined,
+      location
     );
 
-    const query = isUpdate
-      ? supabase.from('centros').update(record).eq('id', id).select()
-      : supabase.from('centros').insert([record]).select();
-    const { data, error } = await query;
+    const { data, error } = await mutateCenter(record, id, isUpdate);
+    if (error && isMissingCoordinateColumn(error)) {
+      const compatibleRecord = { ...record };
+      delete compatibleRecord.lat;
+      delete compatibleRecord.lng;
+      const retry = await mutateCenter(compatibleRecord, id, isUpdate);
+      if (retry.error) throw retry.error;
+
+      const saved = ((retry.data && retry.data[0]) || compatibleRecord) as CenterRecord;
+      return json({ center: saved, view: fromRecord(saved), coordinatesPersisted: false });
+    }
 
     if (error) throw error;
 
     const saved = ((data && data[0]) || record) as CenterRecord;
-    return json({ center: saved, view: fromRecord(saved) });
+    return json({ center: saved, view: fromRecord(saved), coordinatesPersisted: true });
   } catch (error) {
     console.error('Supabase center mutation error', error);
     return json({ error: 'No se pudo guardar el centro.' }, { status: 500 });
@@ -89,6 +99,35 @@ async function getExistingCenter(id: string): Promise<CenterRecord | null> {
 
   if (error) return null;
   return data as CenterRecord;
+}
+
+async function mutateCenter(record: CenterRecord, id: string, isUpdate: boolean) {
+  const supabase = requireSupabase();
+  return isUpdate
+    ? supabase.from('centros').update(record).eq('id', id).select()
+    : supabase.from('centros').insert([record]).select();
+}
+
+function isMissingCoordinateColumn(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String((error as { message?: string })?.message || error);
+  return message.includes("'lat'") || message.includes("'lng'") || message.includes('lat') || message.includes('lng');
+}
+
+async function resolveLocationOnSubmit(mapsUrl: string): Promise<{ lat: number; lng: number } | null> {
+  const directLocation = latLngFromMapsUrl(mapsUrl);
+  if (directLocation) return directLocation;
+  if (!isGoogleMapsUrl(mapsUrl)) return null;
+
+  try {
+    const response = await fetch(mapsUrl, {
+      method: 'GET',
+      redirect: 'follow'
+    });
+    return latLngFromMapsUrl(response.url || mapsUrl);
+  } catch (error) {
+    console.error('Map URL submit resolution failed', error);
+    return null;
+  }
 }
 
 function canMutate(center: CenterRecord | null, actorId: string, clientIp: string | null): boolean {

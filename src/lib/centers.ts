@@ -19,6 +19,8 @@ export type CenterRecord = {
   creator_id: string | null;
   creator_ip: string | null;
   image_url: string | null;
+  lat?: number | null;
+  lng?: number | null;
   image_data?: string | null;
   extra?: Record<string, unknown>;
 };
@@ -42,6 +44,8 @@ export type Center = {
   creatorId: string | null;
   creatorIp: string | null;
   imageUrl: string | null;
+  lat: number | null;
+  lng: number | null;
 };
 
 export type CenterForm = {
@@ -196,7 +200,9 @@ export function fromRecord(record: CenterRecord): Center {
     fecha_publicacion: published,
     creatorId: record.creator_id || null,
     creatorIp: record.creator_ip || null,
-    imageUrl: record.image_url || record.image_data || null
+    imageUrl: record.image_url || record.image_data || null,
+    lat: typeof record.lat === 'number' ? record.lat : null,
+    lng: typeof record.lng === 'number' ? record.lng : null
   };
 }
 
@@ -206,7 +212,8 @@ export function toRecord(
   creatorId: string,
   creatorIp: string | null,
   imageUrl: string | null,
-  publishedAt?: string
+  publishedAt?: string,
+  location?: { lat: number; lng: number } | null
 ): CenterRecord {
   return {
     id,
@@ -226,6 +233,8 @@ export function toRecord(
     creator_id: creatorId,
     creator_ip: creatorIp,
     image_url: imageUrl,
+    lat: location?.lat ?? null,
+    lng: location?.lng ?? null,
     image_data: null,
     extra: {}
   };
