@@ -10,27 +10,18 @@
     fromRecord,
     getUserId,
     isOwned,
-    normalizeMapsUrl,
     shareText,
-    toRecord,
     urgencyLabel,
     urgencyTone,
     validateCenterForm,
     venezuelaStates,
     whatsappUrl,
     type Center,
+    type CenterRecord,
     type CenterForm,
     type Tab,
     type Urgency
   } from '$lib/centers';
-  import {
-    createCenter,
-    deleteCenter,
-    loadCenters,
-    supabaseConfigured,
-    updateCenter,
-    uploadCenterImage
-  } from '$lib/supabase';
 
   let activeTab: Tab = 'ver';
   let centers: Center[] = [];
@@ -87,15 +78,11 @@
         .catch(() => undefined);
     }
 
-    if (!supabaseConfigured) {
-      loading = false;
-      errorMessage =
-        'Supabase no esta configurado. Agrega PUBLIC_SUPABASE_URL y PUBLIC_SUPABASE_ANON_KEY para cargar centros.';
-      return;
-    }
-
     try {
-      const records = await loadCenters();
+      const response = await fetch('/api/centers');
+      if (!response.ok) throw new Error('No se pudieron cargar los centros');
+      const data = (await response.json()) as { centers?: CenterRecord[] };
+      const records = Array.isArray(data.centers) ? data.centers : [];
       centers = records.map(fromRecord);
     } catch (error) {
       console.error('Supabase load error', error);
@@ -171,7 +158,18 @@
     if (!confirm('Eliminar este centro de acopio?')) return;
 
     try {
-      await deleteCenter(center.id);
+      const body = new FormData();
+      body.set('action', 'delete');
+      body.set('id', center.id);
+      body.set('creatorId', userId);
+
+      const response = await fetch('/api/centers', {
+        method: 'POST',
+        body
+      });
+
+      if (!response.ok) throw new Error('No se pudo eliminar el centro');
+
       centers = centers.filter((item) => item.id !== center.id);
       notify('Centro eliminado');
     } catch (error) {
@@ -184,11 +182,6 @@
     errorMessage = '';
     successMessage = '';
 
-    if (!supabaseConfigured) {
-      errorMessage = 'Supabase no esta configurado. Revisa las variables publicas de entorno.';
-      return;
-    }
-
     const errors = validateCenterForm(form);
     if (errors.length > 0) {
       errorMessage = `Por favor completa: ${errors.join(', ')}.`;
@@ -197,16 +190,30 @@
 
     saving = true;
     const isEdit = Boolean(editCenterId);
-    const existing = editCenterId ? centers.find((center) => center.id === editCenterId) || null : null;
     const id = editCenterId || `c_${Date.now()}`;
 
     try {
-      let imageUrl = existing?.imageUrl || null;
-      if (selectedImage) imageUrl = await uploadCenterImage(selectedImage);
+      const body = centerFormData(form, {
+        action: isEdit ? 'update' : 'create',
+        id,
+        creatorId: userId,
+        image: selectedImage
+      });
+      const response = await fetch('/api/centers', {
+        method: 'POST',
+        body
+      });
 
-      const record = toRecord(form, id, userId, userIp, imageUrl, existing?.fecha_publicacion);
-      const saved = isEdit ? await updateCenter(id, record) : await createCenter(record);
-      const nextCenter = fromRecord(saved || record);
+      const data = (await response.json().catch(() => ({}))) as {
+        center?: CenterRecord;
+        error?: string;
+      };
+
+      if (!response.ok || !data.center) {
+        throw new Error(data.error || 'No se pudo guardar el centro');
+      }
+
+      const nextCenter = fromRecord(data.center);
 
       centers = isEdit
         ? centers.map((center) => (center.id === id ? nextCenter : center))
@@ -248,6 +255,38 @@
     setTimeout(() => {
       toastMessage = '';
     }, 2800);
+  }
+
+  function centerFormData(
+    centerForm: CenterForm,
+    options: { action: 'create' | 'update'; id: string; creatorId: string; image: File | null }
+  ) {
+    const body = new FormData();
+
+    body.set('action', options.action);
+    body.set('id', options.id);
+    body.set('creatorId', options.creatorId);
+    body.set('nombre', centerForm.nombre);
+    body.set('estado', centerForm.estado);
+    body.set('direccion', centerForm.direccion);
+    body.set('mapsUrl', centerForm.mapsUrl);
+    body.set('responsable', centerForm.responsable);
+    body.set('cedula', centerForm.cedula);
+    body.set('correo', centerForm.correo);
+    body.set('telefono', centerForm.telefono);
+    body.set('horario', centerForm.horario);
+    body.set('descripcion', centerForm.descripcion);
+    body.set('urgencia', centerForm.urgencia);
+
+    for (const type of centerForm.tipos) {
+      body.append('tipos', type);
+    }
+
+    if (options.image) {
+      body.set('image', options.image);
+    }
+
+    return body;
   }
 </script>
 

@@ -11,12 +11,12 @@ npm run dev
 
 ## Required environment variables
 
-Create `.env` locally and configure the public Supabase values used by the browser app:
+Create `.env` locally and configure the server-side Supabase values:
 
 ```bash
-PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-PUBLIC_SUPABASE_ANON_KEY="your-anon-or-publishable-key"
-PUBLIC_SUPABASE_STORAGE_BUCKET="Imagenes"
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_ANON_KEY="your-anon-or-publishable-key"
+SUPABASE_STORAGE_BUCKET="Imagenes"
 ```
 
 The app expects the existing Supabase `centros` table and the `Imagenes` storage bucket.
@@ -30,4 +30,4 @@ Vercel builds the SvelteKit app with:
 npm run build
 ```
 
-Set the same public Supabase environment variables in the Vercel project settings before deploying.
+Set the same Supabase environment variables in the Vercel project settings before deploying.
